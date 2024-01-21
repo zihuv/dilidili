@@ -17,6 +17,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // 添加拦截器并指定拦截路径
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/api/user/login", "/error");
+                .excludePathPatterns("/api/user/login", "/error", "/api/user/register");
     }
 }
