@@ -1,6 +1,7 @@
 package com.zihuv.dilidili.interceptor;
 
 import cn.hutool.core.util.StrUtil;
+import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.exception.ClientException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,7 +23,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (token == null) {
             throw new ClientException("[登录拦截器] token 不能为 null");
         }
-        if (redisTemplate.opsForValue().get(token) == null) {
+        if (redisTemplate.opsForValue().get(RedisConstant.USER_TOKEN_KEY + token) == null) {
             throw new ClientException(StrUtil.format("[登录拦截器] token：{} 不存在", token));
         }
         return true;
