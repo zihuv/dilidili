@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 
 @Service
-public class VideoServiceImpl implements ReviewService {
+public class VideoReviewServiceImpl implements ReviewService {
 
     @Autowired
     private QiNiuConfig qiNiuConfig;
