@@ -1,5 +1,6 @@
 package com.zihuv.dilidili.config;
 
+import cn.hutool.core.util.StrUtil;
 import com.qiniu.util.Auth;
 import com.qiniu.util.StringMap;
 import lombok.Data;
@@ -20,10 +21,18 @@ public class QiNiuConfig {
      */
     @Value("${qiniu.secret-key}")
     private String secretKey;
+
     /**
      * bucketName
      */
+    @Value("${qiniu.bucket-name}")
     private String bucketName;
+
+    /**
+     * baseUrl
+     */
+    @Value("${qiniu.base-url}")
+    private String baseUrl;
 
     public static final String CNAME = "http://s4ep712zo.hn-bkt.clouddn.com";
     public static final String VIDEO_URL = "http://ai.qiniuapi.com/v3/video/censor";
@@ -37,8 +46,7 @@ public class QiNiuConfig {
         return Auth.create(accessKey, secretKey);
     }
 
-
-    public String uploadToken(String type){
+    public String uploadToken(String type) {
         final Auth auth = buildAuth();
         return auth.uploadToken(bucketName, null, 300, new
                 StringMap().put("mimeLimit", "video/*;image/*"));
@@ -47,13 +55,38 @@ public class QiNiuConfig {
     public String videoUploadToken() {
         final Auth auth = buildAuth();
         return auth.uploadToken(bucketName, null, 300, new
-                StringMap().put("mimeLimit", "video/*").putNotEmpty("persistentOps", fops));
+                StringMap().put("mimeLimit", "video/*"));
     }
 
     public String imageUploadToken() {
         final Auth auth = buildAuth();
         return auth.uploadToken(bucketName, null, 300, new
                 StringMap().put("mimeLimit", "image/*"));
+    }
+
+    public String getDownloadUrl(String fileName) {
+        return getDownloadUrl("", fileName);
+    }
+
+    public String getDownloadUrl(String filePath, String fileName) {
+        if (StrUtil.isNotEmpty(filePath)) {
+            filePath = processFilePath(filePath);
+        }
+        String url = baseUrl + filePath + fileName;
+        final Auth auth = buildAuth();
+        return auth.privateDownloadUrl(url);
+    }
+
+    public static String processFilePath(String filePath) {
+        // 删除开头的 "/"
+        if (filePath.startsWith("/")) {
+            filePath = filePath.substring(1);
+        }
+        // 添加末尾的 "/"
+        if (!filePath.endsWith("/")) {
+            filePath = filePath + "/";
+        }
+        return filePath;
     }
 
     public String getToken(String url, String method, String body, String contentType) {
