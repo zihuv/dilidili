@@ -1,4 +1,4 @@
-package com.zihuv.dilidili.mapper;
+package com.zihuv.dilidili.mapper.user;
 
 import com.zihuv.dilidili.model.entity.UserFollow;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;

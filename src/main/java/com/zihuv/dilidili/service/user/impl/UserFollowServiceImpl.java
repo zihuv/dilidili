@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.exception.ClientException;
 import com.zihuv.dilidili.exception.ServiceException;
-import com.zihuv.dilidili.mapper.UserFollowMapper;
+import com.zihuv.dilidili.mapper.user.UserFollowMapper;
 import com.zihuv.dilidili.model.entity.User;
 import com.zihuv.dilidili.model.entity.UserFollow;
 import com.zihuv.dilidili.model.vo.FollowVO;

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.exception.ClientException;
-import com.zihuv.dilidili.mapper.UserMapper;
+import com.zihuv.dilidili.mapper.user.UserMapper;
 import com.zihuv.dilidili.model.entity.User;
 import com.zihuv.dilidili.model.param.RegisterUserParam;
 import com.zihuv.dilidili.model.vo.UserInfoVO;
