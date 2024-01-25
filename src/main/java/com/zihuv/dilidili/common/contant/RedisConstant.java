@@ -9,4 +9,7 @@ public class RedisConstant {
 
     // 用户粉丝
     public static final String USER_FANS = "user:fans:";
+
+    // 热门排行榜
+    public static final String HOT_RANK = "hot:rank";
 }

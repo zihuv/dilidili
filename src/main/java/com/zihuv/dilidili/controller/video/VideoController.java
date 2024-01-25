@@ -24,9 +24,23 @@ public class VideoController {
         return Result.success();
     }
 
+    @GetMapping("/api/video/get")
+    public Result<?> getVideoByName(@RequestParam String videoTitle) {
+        return Result.success(videoService.getVideoByName(videoTitle));
+    }
+
+
     @GetMapping("/api/video/delete")
     public Result<?> deleteVideo(@RequestParam Long videoId) {
         videoService.deleteVideo(videoId);
         return Result.success();
+    }
+
+    /**
+     * 获取热度排行榜视频
+     */
+    @GetMapping("/api/video/hot/rank")
+    public Result<?> getHotRankVideo() {
+        return Result.success(videoService.getHotRankVideo());
     }
 }

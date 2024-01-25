@@ -1,19 +1,33 @@
 package com.zihuv.dilidili.service.video.impl;
 
+import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.config.QiNiuConfig;
+import com.zihuv.dilidili.exception.ServiceException;
 import com.zihuv.dilidili.mapper.video.VideoMapper;
 import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.param.VideoPublishParam;
+import com.zihuv.dilidili.model.vo.HotVideoVO;
 import com.zihuv.dilidili.service.video.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements VideoService {
 
     @Autowired
     private QiNiuConfig qiNiuConfig;
+
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public String getUploadVideoToken() {
@@ -41,6 +55,29 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         this.removeById(videoId);
     }
 
+    @Override
+    public List<Video> getVideoByName(String videoTitle) {
+        LambdaQueryWrapper<Video> lqw = new LambdaQueryWrapper<>();
+        lqw.like(Video::getVideoTitle, videoTitle);
+        return this.list(lqw);
+    }
+
+    @Override
+    public List<HotVideoVO> getHotRankVideo() {
+        Set<ZSetOperations.TypedTuple<Object>> idSet = redisTemplate.opsForZSet().reverseRangeWithScores(RedisConstant.HOT_RANK, 0, -1);
+        if (CollUtil.isEmpty(idSet)) {
+            throw new ServiceException("[热度排行榜] 热度视频排行榜为空");
+        }
+        List<HotVideoVO> hotVideoVOList = new ArrayList<>();
+        for (ZSetOperations.TypedTuple<Object> objectTypedTuple : idSet) {
+            Long videoId = Long.parseLong(String.valueOf(objectTypedTuple.getValue()));
+            Double hotness = objectTypedTuple.getScore();
+            HotVideoVO hotVideoVO = new HotVideoVO(videoId, hotness);
+            hotVideoVO.hotFormat();
+            hotVideoVOList.add(hotVideoVO);
+        }
+        return hotVideoVOList;
+    }
 
 }
 
