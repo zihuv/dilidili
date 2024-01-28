@@ -19,8 +19,7 @@ public class LikeController {
      */
     @GetMapping("/api/like/list")
     public Result<?> listLikeVideo() {
-        likeService.listLikeVideo();
-        return Result.success();
+        return Result.success(likeService.listLikeVideo());
     }
 
     /**

@@ -17,6 +17,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 @Service
 public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements LikeService {
 
@@ -34,8 +38,18 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
 
 
     @Override
-    public void listLikeVideo() {
+    public List<?> listLikeVideo() {
+        Set<Object> likeVideoSet = redisTemplate.opsForZSet().reverseRange(RedisConstant.USER_LIKE + userContext.getUserId(), 0, -1);
+        if (CollUtil.isEmpty(likeVideoSet)) {
+            return new ArrayList<>();
+        }
 
+        List<Long> videoIdList = new ArrayList<>();
+        for (Object object : likeVideoSet) {
+            long videoId = Long.parseLong(String.valueOf(object));
+            videoIdList.add(videoId);
+        }
+        return videoService.listByIds(videoIdList);
     }
 
     @Override
@@ -57,12 +71,14 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
             like.setVideoId(videoId);
             this.save(like);
             // TODO 本地缓存批量点赞和 HyperLogLog
+            redisTemplate.opsForZSet().add(RedisConstant.USER_LIKE + userId, videoId, System.currentTimeMillis());
             redisTemplate.opsForValue().increment(key, 1);
             // 发布事件，将缓存更新至数据库
-            eventPublisher.publishEvent(new RedisToDatabaseEvent(key,0,2));
+            eventPublisher.publishEvent(new RedisToDatabaseEvent(key, 0, 2));
         } else {
             // 用户之前点赞过视频，则取消点赞，删除数据库信息
             this.remove(lqw);
+            redisTemplate.opsForZSet().remove(RedisConstant.USER_LIKE + userId, videoId);
             redisTemplate.opsForValue().increment(key, -1);
         }
     }
