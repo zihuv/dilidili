@@ -3,9 +3,12 @@ package com.zihuv.dilidili.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.context.ApplicationContext;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class CommonConfig {
@@ -19,4 +22,8 @@ public class CommonConfig {
         return objectMapper;
     }
 
+    @Bean
+    public Cache<String,Boolean> eventLock() {
+        return CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+    }
 }

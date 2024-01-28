@@ -1,9 +1,9 @@
 package com.zihuv.dilidili.listener;
 
+import com.google.common.cache.Cache;
 import com.zihuv.dilidili.exception.ServiceException;
 import com.zihuv.dilidili.listener.event.RedisToDatabaseEvent;
 import com.zihuv.dilidili.schedul.CounterQueueConsumer;
-import com.zihuv.dilidili.service.video.VideoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
@@ -19,12 +19,20 @@ public class RedisToDatabaseEventListener {
     private RedisTemplate<String, Object> redisTemplate;
 
     @Autowired
-    private VideoService videoService;
+    private Cache<String, Boolean> eventLock;
 
     @EventListener
     @Async
     public void onApplicationEvent(RedisToDatabaseEvent event) {
         String redisKey = String.valueOf(event.getSource());
+        // 如果存在 key，则说明事件已经被添加进队列，结束方法
+        Boolean isPresent = eventLock.getIfPresent(redisKey);
+        if (Boolean.TRUE.equals(isPresent)) {
+            log.info("[事件] 为保证一定时间内事件的幂等性，已将事件：{} 丢弃", event);
+            return;
+        }
+        eventLock.put(redisKey, true);
+
         String[] split = redisKey.split(":");
         Long id = Long.parseLong(split[split.length - 1]);
 
