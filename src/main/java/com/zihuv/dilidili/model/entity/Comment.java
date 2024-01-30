@@ -12,6 +12,12 @@ public class Comment extends BaseDO {
     @TableId
     private Long id;
 
+    private Long rootId;
+
+    private Long videoId;
+
+    private Long parentId;
+
     private Long contentAuthorId;
 
     private String content;

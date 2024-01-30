@@ -7,11 +7,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zihuv.dilidili.exception.ClientException;
 import com.zihuv.dilidili.mapper.comment.CommentMapper;
 import com.zihuv.dilidili.model.entity.Comment;
-import com.zihuv.dilidili.model.entity.CommentRelation;
 import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.param.CommentParam;
 import com.zihuv.dilidili.model.vo.CommentVO;
-import com.zihuv.dilidili.service.comment.CommentRelationService;
 import com.zihuv.dilidili.service.comment.CommentService;
 import com.zihuv.dilidili.service.video.VideoService;
 import com.zihuv.dilidili.util.UserContext;
@@ -19,16 +17,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     @Autowired
     private UserContext userContext;
-
-    @Autowired
-    private CommentRelationService commentRelationService;
 
     @Autowired
     private VideoService videoService;
@@ -60,79 +57,54 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             }
         }
 
+        Long rootId = isParentComment ? 0L : commentParam.getRootId();
+        Long parentId = isParentComment ? 0L : commentParam.getParentId();
         Comment comment = new Comment();
+        comment.setRootId(rootId);
+        comment.setParentId(parentId);
+        comment.setVideoId(commentParam.getVideoId());
         comment.setContentAuthorId(userContext.getUserId());
         comment.setContent(commentParam.getContent());
         comment.setLikeNum(0L);
         comment.setReplyNum(0L);
         this.save(comment);
-
-        Long parentId = isParentComment ? 0L : commentParam.getParentId();
-        Long rootId = isParentComment ? 0L : commentParam.getRootId();
-        CommentRelation commentRelation = new CommentRelation();
-        // 评论中间表和评论表属于一对一关系，评论 id = 评论中间表 id
-        commentRelation.setId(comment.getId());
-        commentRelation.setVideoId(commentParam.getVideoId());
-        commentRelation.setRootId(rootId);
-        commentRelation.setParentId(parentId);
-        commentRelationService.save(commentRelation);
     }
 
     @Override
     public List<?> listComment(Long videoId) {
         // TODO 分页查询
-        // TODO 性能优化
+        // TODO 添加缓存
         // step1.查询出所有父评论
-        LambdaQueryWrapper<CommentRelation> lqwParentRelation = new LambdaQueryWrapper<>();
-        lqwParentRelation.eq(CommentRelation::getVideoId, videoId);
-        lqwParentRelation.eq(CommentRelation::getRootId, 0L);
-        lqwParentRelation.select(CommentRelation::getId);
-        List<CommentRelation> parentCommentRelationList = commentRelationService.list(lqwParentRelation);
-        if (CollUtil.isEmpty(parentCommentRelationList)) {
+        LambdaQueryWrapper<Comment> lqwParentComment = new LambdaQueryWrapper<>();
+        lqwParentComment.eq(Comment::getVideoId, videoId);
+        lqwParentComment.eq(Comment::getRootId, 0L);
+        List<Comment> parentCommentList = this.list(lqwParentComment);
+        if (CollUtil.isEmpty(parentCommentList)) {
             return new ArrayList<>();
         }
-        List<Long> parentIds = parentCommentRelationList.stream().map(CommentRelation::getId).toList();
+        List<Long> rootIdList = parentCommentList.stream().map(Comment::getId).toList();
 
         // step2.查询出所有子评论
-        LambdaQueryWrapper<CommentRelation> lqwSonRelation = new LambdaQueryWrapper<>();
-        lqwSonRelation.eq(CommentRelation::getVideoId, videoId);
-        lqwSonRelation.in(CommentRelation::getRootId, parentIds);
-        List<CommentRelation> sonCommentRelationList = commentRelationService.list(lqwSonRelation);
+        LambdaQueryWrapper<Comment> lqwSonComment = new LambdaQueryWrapper<>();
+        lqwSonComment.eq(Comment::getVideoId, videoId);
+        lqwSonComment.in(Comment::getRootId, rootIdList);
+        List<Comment> sonCommentList = this.list(lqwSonComment);
 
-        // step3.使用 rootId 和 parentId 将子评论与父评论组装成 id 树
-        Map<Long, List<Long>> commentIdTree = new LinkedHashMap<>();
-        for (CommentRelation pRelation : parentCommentRelationList) {
-            for (CommentRelation sRelation : sonCommentRelationList) {
-                if (pRelation.getId().equals(sRelation.getRootId())) {
-                    List<Long> sonList = commentIdTree.get(pRelation.getId());
-                    if (sonList == null) {
-                        List<Long> idList = new ArrayList<>();
-                        idList.add(sRelation.getId());
-                        commentIdTree.put(pRelation.getId(), idList);
-                    } else {
-                        sonList.add(sRelation.getId());
-                    }
-                }
-            }
-        }
-        // step4.根据 id 树来组装父子评论
+        // step3.使用 rootId 将父评论与子评论组装
         List<CommentVO> result = new ArrayList<>();
-        commentIdTree.forEach((parentId, sonIdList) -> {
-            Comment parentComment = this.getById(parentId);
-            LambdaQueryWrapper<Comment> lqwSonComment = new LambdaQueryWrapper<>();
-            lqwSonComment.in(Comment::getId, sonIdList);
-            List<Comment> sonCommentList = this.list(lqwSonComment);
-
-            List<CommentVO> sonCommenVOtList = new ArrayList<>();
-            for (Comment comment : sonCommentList) {
-                CommentVO commentVO = new CommentVO();
-                commentVO.setId(comment.getId());
-                commentVO.setParentId(0L); // TODO parentId 有问题
-                commentVO.setContent(comment.getContent());
-                commentVO.setLikeNum(comment.getLikeNum());
-                commentVO.setReplyNum(comment.getReplyNum());
-                commentVO.setSonComment(null);
-                sonCommenVOtList.add(commentVO);
+        for (Comment parentComment : parentCommentList) {
+            List<CommentVO> sonCommentVOList = new ArrayList<>();
+            for (Comment sonComment : sonCommentList) {
+                if (parentComment.getId().equals(sonComment.getRootId())) {
+                    CommentVO sonCommentVO = new CommentVO();
+                    sonCommentVO.setId(sonComment.getId());
+                    sonCommentVO.setParentId(sonComment.getParentId());
+                    sonCommentVO.setContent(sonComment.getContent());
+                    sonCommentVO.setLikeNum(sonComment.getLikeNum());
+                    sonCommentVO.setReplyNum(sonComment.getReplyNum());
+                    sonCommentVO.setSonComment(null);
+                    sonCommentVOList.add(sonCommentVO);
+                }
             }
             CommentVO parentCommentVO = new CommentVO();
             parentCommentVO.setId(parentComment.getId());
@@ -140,9 +112,9 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             parentCommentVO.setContent(parentComment.getContent());
             parentCommentVO.setLikeNum(parentComment.getLikeNum());
             parentCommentVO.setReplyNum(parentComment.getReplyNum());
-            parentCommentVO.setSonComment(sonCommenVOtList);
+            parentCommentVO.setSonComment(sonCommentVOList);
             result.add(parentCommentVO);
-        });
+        }
         return result;
     }
 
