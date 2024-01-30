@@ -7,7 +7,7 @@ import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.exception.ServiceException;
 import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.vo.HotVideoVO;
-import com.zihuv.dilidili.service.video.VideoService;
+import com.zihuv.dilidili.service.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
