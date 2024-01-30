@@ -1,20 +1,15 @@
 package com.zihuv.dilidili.util;
 
-import com.zihuv.dilidili.util.user.IUserContext;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-@Component
 public class UserContext {
 
-    @Autowired
-    private IUserContext iUserContext;
+    private static final ThreadLocal<Long> userThreadLocal = new ThreadLocal<>();
 
-    public Long getUserId() {
-        return iUserContext.getUserId();
+    public static void setUserId(Long userId) {
+        userThreadLocal.set(userId);
     }
 
-    public String getUserName() {
-        return iUserContext.getUsername();
+    public static Long getUserId() {
+        return userThreadLocal.get();
     }
+
 }

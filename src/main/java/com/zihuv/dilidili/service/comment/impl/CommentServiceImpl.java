@@ -25,9 +25,6 @@ import java.util.Objects;
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
     @Autowired
-    private UserContext userContext;
-
-    @Autowired
     private VideoService videoService;
 
     @Transactional(rollbackFor = Exception.class)
@@ -64,7 +61,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setRootId(rootId);
         comment.setParentId(parentId);
         comment.setVideoId(commentParam.getVideoId());
-        comment.setContentAuthorId(userContext.getUserId());
+        comment.setContentAuthorId(UserContext.getUserId());
         comment.setContent(commentParam.getContent());
         comment.setLikeNum(0L);
         comment.setReplyNum(0L);

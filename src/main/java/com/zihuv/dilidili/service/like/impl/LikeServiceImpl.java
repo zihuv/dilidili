@@ -31,15 +31,12 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
     private VideoService videoService;
 
     @Autowired
-    private UserContext userContext;
-
-    @Autowired
     private ApplicationEventPublisher eventPublisher;
 
 
     @Override
     public List<?> listLikeVideo() {
-        Set<Object> likeVideoSet = redisTemplate.opsForZSet().reverseRange(RedisConstant.USER_LIKE + userContext.getUserId(), 0, -1);
+        Set<Object> likeVideoSet = redisTemplate.opsForZSet().reverseRange(RedisConstant.USER_LIKE + UserContext.getUserId(), 0, -1);
         if (CollUtil.isEmpty(likeVideoSet)) {
             return new ArrayList<>();
         }
@@ -57,7 +54,7 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
         if (videoService.getById(videoId) == null) {
             throw new ClientException(StrUtil.format("[点赞视频] 视频 id：{} 不存在，不允许点赞该视频", videoId));
         }
-        Long userId = userContext.getUserId();
+        Long userId = UserContext.getUserId();
 
         String key = RedisConstant.VIDEO_LIKE + videoId;
         LambdaQueryWrapper<Like> lqw = new LambdaQueryWrapper<>();

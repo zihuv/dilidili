@@ -32,15 +32,12 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
     private UserService userService;
 
     @Autowired
-    private UserContext userContext;
-
-    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void follow(Long followUserId) {
-        Long userId = userContext.getUserId();
+        Long userId = UserContext.getUserId();
         if (userId.equals(followUserId)) {
             throw new ClientException("[关注模块] 不可以关注你自己");
         }
@@ -147,7 +144,7 @@ public class UserFollowServiceImpl extends ServiceImpl<UserFollowMapper, UserFol
     @Override
     public void unfollow(String followUserId) {
         LambdaQueryWrapper<UserFollow> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(UserFollow::getUserId, userContext.getUserId());
+        lqw.eq(UserFollow::getUserId, UserContext.getUserId());
         lqw.eq(UserFollow::getFollowUserId, followUserId);
         this.remove(lqw);
     }
