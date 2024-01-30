@@ -22,4 +22,10 @@ public class CommentController {
     public Result<?> listComment(@RequestParam Long videoId) {
         return Result.success(commentService.listComment(videoId));
     }
+
+    @GetMapping("/api/comment/delete")
+    public Result<?> deleteComment(@RequestParam Long id) {
+        commentService.deleteComment(id);
+        return Result.success();
+    }
 }

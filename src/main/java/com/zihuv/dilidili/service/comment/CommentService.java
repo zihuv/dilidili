@@ -14,4 +14,6 @@ public interface CommentService extends IService<Comment> {
     void addComment(CommentParam commentParam);
 
     List<?> listComment(Long videoId);
+
+    void deleteComment(Long id);
 }

@@ -33,6 +33,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void addComment(CommentParam commentParam) {
+        // TODO 添加评论数量
         // TODO 当在评论的时候，父评论可能删除了，存在并发的情况
         // 评论有三种情况：
         // 1. 一级评论：root = parent = 0。当 root = 0 时，请求参数的 parent 不会被使用，而是直接设置为 0
@@ -116,6 +117,15 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
             result.add(parentCommentVO);
         }
         return result;
+    }
+
+    @Override
+    public void deleteComment(Long id) {
+        // 两种删除评论的情况：
+        // 1.删除子评论：直接删
+        // 2.删除父评论：直接删父评论，子评论无需删除，因为在查询的时候只要父评论没被查询出，其对应的子评论也不会被查询
+        // TODO 权限校验
+        this.removeById(id);
     }
 
 }
