@@ -12,4 +12,6 @@ public class UserContext {
         return userThreadLocal.get();
     }
 
+    public static void clear() {userThreadLocal.remove();}
+
 }
