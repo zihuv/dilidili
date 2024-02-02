@@ -20,6 +20,9 @@ public class Comment extends BaseDO {
 
     private Long contentAuthorId;
 
+    // 冗余数据，减少查询次数
+    private Long toUserId;
+
     private String content;
 
     private Long likeNum;

@@ -11,6 +11,10 @@ public class CommentVO {
 
     private Long parentId;
 
+    private Long userId;
+
+    private Long toUserId;
+
     private String content;
 
     private Long likeNum;
