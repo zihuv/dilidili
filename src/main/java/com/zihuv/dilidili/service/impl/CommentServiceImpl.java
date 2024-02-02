@@ -10,6 +10,8 @@ import com.zihuv.dilidili.model.entity.Comment;
 import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.param.CommentParam;
 import com.zihuv.dilidili.model.vo.CommentVO;
+import com.zihuv.dilidili.mq.event.ReplyCommentEvent;
+import com.zihuv.dilidili.mq.producer.ReplyCommentProducer;
 import com.zihuv.dilidili.service.CommentService;
 import com.zihuv.dilidili.service.VideoService;
 import com.zihuv.dilidili.util.UserContext;
@@ -27,34 +29,44 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Autowired
     private VideoService videoService;
 
+    @Autowired
+    private ReplyCommentProducer replyCommentProducer;
+
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void addComment(CommentParam commentParam) {
         // TODO 添加评论数量
         // TODO 当在评论的时候，父评论可能删除了，存在并发的情况
         // 评论有三种情况：
-        // 1. 一级评论：root = parent = 0。当 root = 0 时，请求参数的 parent 不会被使用，而是直接设置为 0
+        // 1. 一级评论：root = parent = 0。当 root = 0 时，请求参数的 parent 不会被使用，而是直接设置为 0（父评论）
         // 2. 二级评论：root = parent != 0
         // 3. 三级评论：root != parent != 0
+
+        // step1.校验视频是否存在
         Video video = videoService.getById(commentParam.getVideoId());
         if (video == null) {
             throw new ClientException(StrUtil.format("[评论服务] 点赞的视频 id：{} 不存在", commentParam.getVideoId()));
         }
 
-        boolean isParentComment = commentParam.getRootId() == 0L;
+        // step2.校验回复的评论是否存在
         // 一级评论不回复别人的评论，所以不需要校验回复的评论是否存在
+        // 之后不应该再次在数据库查询评论，因为中途可能评论被删除，再次查同一条评论无法查询到，造成并发问题导致空指针异常
+        boolean isParentComment = commentParam.getRootId() == 0L;
+        Comment replyComment = this.getById(commentParam.getParentId());
         if (!isParentComment) {
-            // 二级评论和三级评论校验根评论是否存在
-            if (this.getById(commentParam.getRootId()) == null) {
-                throw new ClientException(StrUtil.format("[评论服务] 回复的父评论 id：{} 不存在", commentParam.getRootId()));
+            // 二级评论和三级评论校验回复评论是否存在
+            if (replyComment == null) {
+                throw new ClientException(StrUtil.format("[评论服务] 回复父评论 id：{} 不存在", commentParam.getParentId()));
             }
-            // 三级评论校验父评论
+            // 三级评论校验根评论是否存在
             if (!Objects.equals(commentParam.getRootId(), commentParam.getParentId())
-                    && this.getById(commentParam.getParentId()) == null) {
-                throw new ClientException(StrUtil.format("[评论服务] 回复的子评论 id：{} 不存在", commentParam.getParentId()));
+                    && this.getById(commentParam.getRootId()) == null) {
+                throw new ClientException(StrUtil.format("[评论服务] 回复根评论 id：{} 不存在", commentParam.getRootId()));
             }
         }
 
+        // step3.将评论存储至数据库
+        Long toUserId = isParentComment ? 0L : replyComment.getToUserId();
         Long rootId = isParentComment ? 0L : commentParam.getRootId();
         Long parentId = isParentComment ? 0L : commentParam.getParentId();
         Comment comment = new Comment();
@@ -62,10 +74,20 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setParentId(parentId);
         comment.setVideoId(commentParam.getVideoId());
         comment.setContentAuthorId(UserContext.getUserId());
+        comment.setToUserId(toUserId);
         comment.setContent(commentParam.getContent());
         comment.setLikeNum(0L);
         comment.setReplyNum(0L);
         this.save(comment);
+
+        // step4.发布通知给被评论者
+        String replyCommentContent = isParentComment ? "" : replyComment.getContent();
+        ReplyCommentEvent replyCommentEvent = new ReplyCommentEvent();
+        replyCommentEvent.setUserId(UserContext.getUserId());
+        replyCommentEvent.setReplyUserId(toUserId);
+        replyCommentEvent.setOriginalComment(comment.getContent());
+        replyCommentEvent.setReplyComment(replyCommentContent);
+        replyCommentProducer.saveAndSendMessage(replyCommentEvent);
     }
 
     @Override
