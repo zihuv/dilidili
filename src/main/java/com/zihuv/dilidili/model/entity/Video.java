@@ -18,6 +18,8 @@ public class Video extends BaseDO {
 
     private String picPath;
 
+    private Long userId;
+
     private Integer playAmount;
 
     private Integer commentAmount;

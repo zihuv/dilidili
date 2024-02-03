@@ -81,10 +81,16 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         this.save(comment);
 
         // step4.发布通知给被评论者
+        // replyUserId 为需要通知的对象，对于子评论通知父评论作者，对于父评论则通知视频的作者
+        // 如果是作者在自己视频下发送评论，则不需要发送通知
+        if (video.getUserId().equals(UserContext.getUserId())) {
+            return;
+        }
+        Long replyUserId = isParentComment ? video.getUserId() : replyComment.getToUserId();
         String replyCommentContent = isParentComment ? "" : replyComment.getContent();
         ReplyCommentEvent replyCommentEvent = new ReplyCommentEvent();
         replyCommentEvent.setUserId(UserContext.getUserId());
-        replyCommentEvent.setReplyUserId(toUserId);
+        replyCommentEvent.setReplyUserId(replyUserId);
         replyCommentEvent.setOriginalComment(comment.getContent());
         replyCommentEvent.setReplyComment(replyCommentContent);
         replyCommentProducer.saveAndSendMessage(replyCommentEvent);

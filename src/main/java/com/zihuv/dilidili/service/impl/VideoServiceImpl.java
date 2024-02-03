@@ -11,6 +11,7 @@ import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.param.VideoPublishParam;
 import com.zihuv.dilidili.model.vo.HotVideoVO;
 import com.zihuv.dilidili.service.VideoService;
+import com.zihuv.dilidili.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -42,6 +43,7 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         video.setVideoName(videoPublishParam.getVideoName());
         video.setVideoPath(qiNiuConfig.getDownloadUrl(videoPublishParam.getVideoName()));
         video.setPicPath(videoPublishParam.getPicPath());
+        video.setUserId(UserContext.getUserId());
         video.setLikeAmount(0);
         video.setCollectAmount(0);
         video.setShareAmount(0);
