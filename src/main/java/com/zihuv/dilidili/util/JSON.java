@@ -16,7 +16,7 @@ import java.util.Objects;
 @Slf4j
 public class JSON {
 
-    private static final ObjectMapper objectMapper ;
+    private static final ObjectMapper objectMapper;
 
     static {
         objectMapper = new ObjectMapper();
@@ -34,16 +34,15 @@ public class JSON {
         if (object == null) {
             return null;
         }
-        // 集合中不允许出现 null
-        if (object instanceof List<?> list) {
-            if (list.stream().anyMatch(Objects::isNull)) {
-                log.error("json 序列化错误：{}", object);
-                return null;
-            }
-        }
         try {
+            // 集合中不允许出现 null
+            if (object instanceof List<?> list) {
+                if (list.stream().anyMatch(Objects::isNull)) {
+                    throw new Exception();
+                }
+            }
             return objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             log.error("json 序列化错误：{}", object, e);
             return null;
         }
@@ -86,6 +85,17 @@ public class JSON {
             log.error("json 反序列化错误：{}", json, e);
             throw new RuntimeException("json 反序列化错误", e);
         }
+    }
+
+    /**
+     * 将 json 反序列化为集合
+     *
+     * @param json   json 串
+     * @param tClass 目标数据类型字节码
+     * @return 目标数据类型的集合
+     */
+    public static <T> List<T> toList(Object json, Class<T> tClass) {
+        return toList(JSON.toJsonStr(json), tClass);
     }
 
     /**
