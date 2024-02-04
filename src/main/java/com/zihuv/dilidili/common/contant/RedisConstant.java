@@ -18,4 +18,7 @@ public class RedisConstant {
 
     // 用户点赞过的视频 key + userId。videoId 使用 ZSET 存储
     public static final String USER_LIKE = "user:like:";
+
+    // 系统通知（数据结构：List）
+    public static final String SYSTEM_NOTIFICATION = "notification:system";
 }
