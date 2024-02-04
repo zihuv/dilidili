@@ -6,7 +6,6 @@ import com.zihuv.dilidili.mapper.NotificationMapper;
 import com.zihuv.dilidili.model.entity.Notification;
 import com.zihuv.dilidili.model.param.PostSystemNotificationParam;
 import com.zihuv.dilidili.mq.event.PostSystemNotificationEvent;
-import com.zihuv.dilidili.mq.producer.PostSystemNotificationProducer;
 import com.zihuv.dilidili.service.NotificationService;
 import com.zihuv.dilidili.util.JSON;
 import com.zihuv.dilidili.util.UserContext;
@@ -21,9 +20,6 @@ import static com.zihuv.dilidili.common.contant.RedisConstant.SYSTEM_NOTIFICATIO
 
 @Service
 public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Notification> implements NotificationService {
-
-    @Autowired
-    private PostSystemNotificationProducer postSystemNotificationProducer;
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
@@ -51,6 +47,6 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
         event.setTitle(requestParam.getTitle());
         event.setContent(requestParam.getContent());
         event.setCreateTime(LocalDateTime.now());
-        postSystemNotificationProducer.sendMessage(event);
+        redisTemplate.opsForList().rightPush(SYSTEM_NOTIFICATION, event);
     }
 }
