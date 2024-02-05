@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.google.common.cache.Cache;
 import com.zihuv.dilidili.listener.event.RedisToDatabaseEvent;
 import com.zihuv.dilidili.model.entity.Video;
-import com.zihuv.dilidili.service.video.VideoService;
+import com.zihuv.dilidili.service.VideoService;
 import com.zihuv.dilidili.util.JSON;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +32,9 @@ public class CounterQueueConsumer {
     // 每秒都去消费队列
     @Scheduled(cron = "* * * * * *")
     public void redisToDatabase() {
+        // TODO 使用线程池加速消费，避免消费能力不足
+        // TODO 梯度消费，流量越大，延迟消费时间就越长
+        // TODO 兼容消费各种计数功能，比如评论，播放量，转发数的计数
         while (true) {
             RedisToDatabaseEvent event = queue.poll();
             if (event == null) {
