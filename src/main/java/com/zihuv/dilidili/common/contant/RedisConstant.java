@@ -21,4 +21,7 @@ public class RedisConstant {
 
     // 系统通知（数据结构：List）
     public static final String SYSTEM_NOTIFICATION = "notification:system";
+
+    // 朋友登录状态 key + userId
+    public static final String FRIEND_STATUS = "friend:status:";
 }
