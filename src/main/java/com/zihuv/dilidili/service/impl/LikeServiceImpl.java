@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zihuv.dilidili.common.contant.BusinessConstant;
 import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.exception.ClientException;
 import com.zihuv.dilidili.listener.event.RedisToDatabaseEvent;
@@ -71,7 +72,8 @@ public class LikeServiceImpl extends ServiceImpl<LikeMapper, Like> implements Li
             redisTemplate.opsForZSet().add(RedisConstant.USER_LIKE + userId, videoId, System.currentTimeMillis());
             redisTemplate.opsForValue().increment(key, 1);
             // 发布事件，将缓存更新至数据库
-            eventPublisher.publishEvent(new RedisToDatabaseEvent(key, 0, 2));
+            // TODO 改造成 MQ
+            eventPublisher.publishEvent(new RedisToDatabaseEvent(key, BusinessConstant.LIKE, 2));
         } else {
             // 用户之前点赞过视频，则取消点赞，删除数据库信息
             this.remove(lqw);

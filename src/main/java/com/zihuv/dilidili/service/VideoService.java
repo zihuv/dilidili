@@ -21,4 +21,6 @@ public interface VideoService extends IService<Video> {
     List<Video> getVideoByName(String videoTitle);
 
     List<HotVideoVO> getHotRankVideo();
+
+    void incrementVideoViews(Long videoId);
 }

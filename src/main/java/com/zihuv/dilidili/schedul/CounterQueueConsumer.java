@@ -12,7 +12,11 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.concurrent.DelayQueue;
+
+import static com.zihuv.dilidili.common.contant.BusinessConstant.LIKE;
+import static com.zihuv.dilidili.common.contant.BusinessConstant.VIDEO_VIEWS;
 
 @Slf4j
 @Component
@@ -40,16 +44,32 @@ public class CounterQueueConsumer {
             if (event == null) {
                 break;
             }
-
             Long count = JSON.toBean(redisTemplate.opsForValue().get(event.getRedisKey()), Long.class);
-            LambdaUpdateWrapper<Video> luw = new LambdaUpdateWrapper<>();
-            luw.eq(Video::getId, event.getId());
-            luw.set(Video::getLikeAmount, count);
-            videoService.update(luw);
+            Integer businessId = event.getBusinessId();
+            if (Objects.equals(businessId, LIKE)) {
+                updateLike(event, count);
+            } else if (Objects.equals(businessId, VIDEO_VIEWS)) {
+                updateViews(event, count);
+            }
+
             // 事件处理完毕，将锁删除
             eventLock.invalidate(event.getRedisKey());
             log.info("[消费队列] 事件：{} 消费成功", event);
         }
+    }
+
+    private void updateLike(RedisToDatabaseEvent event, Long count) {
+        LambdaUpdateWrapper<Video> luw = new LambdaUpdateWrapper<>();
+        luw.eq(Video::getId, event.getId());
+        luw.set(Video::getLikeAmount, count);
+        videoService.update(luw);
+    }
+
+    private void updateViews(RedisToDatabaseEvent event, Long count) {
+        LambdaUpdateWrapper<Video> luw = new LambdaUpdateWrapper<>();
+        luw.eq(Video::getId, event.getId());
+        luw.set(Video::getPlayAmount, count);
+        videoService.update(luw);
     }
 
 }

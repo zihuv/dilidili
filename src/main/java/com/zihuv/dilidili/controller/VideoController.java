@@ -43,4 +43,13 @@ public class VideoController {
     public Result<?> getHotRankVideo() {
         return Result.success(videoService.getHotRankVideo());
     }
+
+    /**
+     * 添加视频播放量
+     */
+    @GetMapping("/api/video/views/increment")
+    public Result<?> incrementVideoViews(@RequestParam Long videoId) {
+        videoService.incrementVideoViews(videoId);
+        return Result.success();
+    }
 }

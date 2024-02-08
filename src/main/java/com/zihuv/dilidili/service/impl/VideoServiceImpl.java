@@ -3,9 +3,11 @@ package com.zihuv.dilidili.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zihuv.dilidili.common.contant.BusinessConstant;
 import com.zihuv.dilidili.common.contant.RedisConstant;
 import com.zihuv.dilidili.config.QiNiuConfig;
 import com.zihuv.dilidili.exception.ServiceException;
+import com.zihuv.dilidili.listener.event.RedisToDatabaseEvent;
 import com.zihuv.dilidili.mapper.VideoMapper;
 import com.zihuv.dilidili.model.entity.Video;
 import com.zihuv.dilidili.model.param.VideoPublishParam;
@@ -13,6 +15,7 @@ import com.zihuv.dilidili.model.vo.HotVideoVO;
 import com.zihuv.dilidili.service.VideoService;
 import com.zihuv.dilidili.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     public String getUploadVideoToken() {
@@ -79,6 +85,15 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
             hotVideoVOList.add(hotVideoVO);
         }
         return hotVideoVOList;
+    }
+
+    @Override
+    public void incrementVideoViews(Long videoId) {
+        // step1.在 redis 中更新播放量
+        String key = RedisConstant.VIDEO_VIEWS + videoId;
+        redisTemplate.opsForValue().increment(key, 1L);
+        // step2.发布 redis 更新至数据库事件
+        eventPublisher.publishEvent(new RedisToDatabaseEvent(key, BusinessConstant.VIDEO_VIEWS, 2));
     }
 
 }
