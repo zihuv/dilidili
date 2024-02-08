@@ -31,6 +31,6 @@ public class CommonConfig {
 
     @Bean
     public Cache<Long, SseEmitter> sseEmitterCache() {
-        return CacheBuilder.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).build();
+        return CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
     }
 }

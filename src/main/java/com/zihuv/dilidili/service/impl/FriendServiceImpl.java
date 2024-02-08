@@ -13,6 +13,7 @@ import com.zihuv.dilidili.model.vo.FriendVO;
 import com.zihuv.dilidili.service.FriendService;
 import com.zihuv.dilidili.service.UserService;
 import com.zihuv.dilidili.util.UserContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ import static com.zihuv.dilidili.common.contant.FriendConstant.OFFLINE;
 import static com.zihuv.dilidili.common.contant.FriendConstant.ONLINE;
 import static com.zihuv.dilidili.common.contant.RedisConstant.FRIEND_STATUS;
 
+@Slf4j
 @Service
 public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> implements FriendService {
 
@@ -113,30 +115,32 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     public void heartbeat() {
         // 如果有段时间没上线，就要注册心跳，并通知好友我已上线信息
         if (redisTemplate.opsForValue().get(FRIEND_STATUS + UserContext.getUserId()) == null) {
+            log.info("[心跳服务] 用户：{} 注册心跳", UserContext.getUserId());
             setHeartbeatKey();
             //  给在线的好友发送“我”上线的通知，即通过 sse 推送登录消息
             List<FriendVO> friendVOList = this.listFriend();
             for (FriendVO friendVO : friendVOList) {
                 if (Objects.equals(friendVO.getStatus(), ONLINE)) {
-                    sendBySse(StrUtil.format("[好友服务] 你的好友：{} 已经上线辣！", UserContext.getUserId()));
+                    sendBySse(friendVO.getFriendId(),
+                            StrUtil.format("[好友服务] 你的好友：{} 已经上线辣！", UserContext.getUserId()));
                 }
             }
             return;
         }
         setHeartbeatKey();
         // 续约 SSE
-        sendBySse("");
+        sendBySse(UserContext.getUserId(), "");
     }
 
     private void setHeartbeatKey() {
-        redisTemplate.opsForValue().set(FRIEND_STATUS + UserContext.getUserId(), "", 2, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(FRIEND_STATUS + UserContext.getUserId(), "", 10, TimeUnit.MINUTES);
     }
 
-    private void sendBySse(String message) {
+    private void sendBySse(Long toUserId, String message) {
         try {
-            SseEmitter sseEmitter = sseEmitterCache.getIfPresent(UserContext.getUserId());
+            SseEmitter sseEmitter = sseEmitterCache.getIfPresent(toUserId);
             if (sseEmitter == null) {
-                throw new ClientException("[通知服务] 通知推送 SSE 连接过期，请重新续约");
+                throw new ClientException("[通知服务] 通知推送 SSE 连接过期或者因网络变更而不存在该连接，请重新续约");
             }
             sseEmitter.send(message);
             sseEmitterCache.put(UserContext.getUserId(), sseEmitter);

@@ -64,7 +64,7 @@ public class NotificationServiceImpl extends ServiceImpl<NotificationMapper, Not
 
         // 续期时机：心跳确认用户在线，续约 sse
         // sse 续约办法：发送一个空字符串，并在缓存中更新
-        SseEmitter sseEmitter = new SseEmitter(300L);
+        SseEmitter sseEmitter = new SseEmitter(600000L);
         try {
             sseEmitter.send("");
         } catch (IOException e) {

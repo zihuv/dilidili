@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 public class NotificationController {
@@ -61,7 +62,7 @@ public class NotificationController {
      * 建立 sse 连接，用于消息推送
      */
     @GetMapping(value = "/api/notify/push")
-    public Result<?> pushNotification() {
-        return Result.success(notificationService.pushNotification());
+    public SseEmitter pushNotification() {
+        return notificationService.pushNotification();
     }
 }
