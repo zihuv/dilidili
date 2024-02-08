@@ -7,6 +7,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +25,12 @@ public class CommonConfig {
 
     @Bean
     public Cache<String,Boolean> eventLock() {
+        // TODO 改用分布式锁
         return CacheBuilder.newBuilder().expireAfterWrite(10, TimeUnit.MINUTES).build();
+    }
+
+    @Bean
+    public Cache<Long, SseEmitter> sseEmitterCache() {
+        return CacheBuilder.newBuilder().expireAfterWrite(2, TimeUnit.MINUTES).build();
     }
 }

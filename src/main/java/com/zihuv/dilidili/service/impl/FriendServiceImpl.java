@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.google.common.cache.Cache;
 import com.zihuv.dilidili.exception.ClientException;
 import com.zihuv.dilidili.mapper.FriendMapper;
 import com.zihuv.dilidili.model.entity.Friend;
@@ -15,12 +16,16 @@ import com.zihuv.dilidili.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static com.zihuv.dilidili.common.contant.FriendConstant.OFFLINE;
+import static com.zihuv.dilidili.common.contant.FriendConstant.ONLINE;
 import static com.zihuv.dilidili.common.contant.RedisConstant.FRIEND_STATUS;
 
 @Service
@@ -31,6 +36,9 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private Cache<Long, SseEmitter> sseEmitterCache;
 
     @Override
     public void addFriend(Long friendId) {
@@ -90,9 +98,9 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         // TODO 使用批量查找，减少网络 IO
         Object object = redisTemplate.opsForValue().get(FRIEND_STATUS + friendId);
         if (object == null) {
-            return 0;
+            return OFFLINE;
         }
-        return 1;
+        return ONLINE;
     }
 
     @Override
@@ -100,14 +108,34 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         // 如果有段时间没上线，就要注册心跳，并通知好友我已上线信息
         if (redisTemplate.opsForValue().get(FRIEND_STATUS + UserContext.getUserId()) == null) {
             setHeartbeatKey();
-            // TODO 发送通知
-
+            //  给在线的好友发送“我”上线的通知，即通过 sse 推送登录消息
+            List<FriendVO> friendVOList = this.listFriend();
+            for (FriendVO friendVO : friendVOList) {
+                if (Objects.equals(friendVO.getStatus(), ONLINE)) {
+                    sendBySse(StrUtil.format("[好友服务] 你的好友：{} 已经上线辣！", UserContext.getUserId()));
+                }
+            }
             return;
         }
         setHeartbeatKey();
+        // 续约 SSE
+        sendBySse("");
     }
 
     private void setHeartbeatKey() {
         redisTemplate.opsForValue().set(FRIEND_STATUS + UserContext.getUserId(), "", 2, TimeUnit.SECONDS);
+    }
+
+    private void sendBySse(String message) {
+        try {
+            SseEmitter sseEmitter = sseEmitterCache.getIfPresent(UserContext.getUserId());
+            if (sseEmitter == null) {
+                throw new ClientException("[通知服务] 通知推送 SSE 连接过期，请重新续约");
+            }
+            sseEmitter.send(message);
+            sseEmitterCache.put(UserContext.getUserId(), sseEmitter);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

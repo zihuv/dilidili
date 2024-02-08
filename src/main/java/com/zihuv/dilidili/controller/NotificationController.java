@@ -57,4 +57,11 @@ public class NotificationController {
         return Result.success();
     }
 
+    /**
+     * 建立 sse 连接，用于消息推送
+     */
+    @GetMapping(value = "/api/notify/push")
+    public Result<?> pushNotification() {
+        return Result.success(notificationService.pushNotification());
+    }
 }
