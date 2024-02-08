@@ -16,6 +16,7 @@ import com.zihuv.dilidili.util.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -40,6 +41,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     @Autowired
     private Cache<Long, SseEmitter> sseEmitterCache;
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void addFriend(Long friendId) {
         // step1.判断添加的用户是否存在
@@ -55,11 +57,15 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             throw new ClientException(StrUtil.format("[朋友服务] 用户：{} 已经是用户：{} 的好友", UserContext.getUserId(), friendId));
         }
 
-        // step3.添加好友，即把好友关系添加进数据库
+        // step3.添加好友，即把好友关系添加进数据库（好友双方都要添加至数据库，写扩散）
         Friend friend = new Friend();
         friend.setUserId(UserContext.getUserId());
         friend.setFriendId(friendId);
         this.save(friend);
+        Friend friended = new Friend();
+        friended.setUserId(friendId);
+        friended.setFriendId(UserContext.getUserId());
+        this.save(friended);
     }
 
     @Override
