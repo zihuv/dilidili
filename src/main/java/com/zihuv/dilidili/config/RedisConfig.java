@@ -5,7 +5,12 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.zihuv.dilidili.util.cache.DistributedCache;
+import com.zihuv.dilidili.util.cache.RedisDistributedProperties;
+import com.zihuv.dilidili.util.cache.RedisTemplateProxy;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RedissonClient;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -16,7 +21,10 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableConfigurationProperties(RedisDistributedProperties.class)
 public class RedisConfig {
+
+    private final RedisDistributedProperties redisDistributedProperties;
 
     /**
      * 配置 RedisTemplate 的序列化器
@@ -46,6 +54,11 @@ public class RedisConfig {
         objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
         objectMapper.registerModule(new JavaTimeModule());
         return new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+    }
+
+    @Bean
+    public DistributedCache distributedCache(RedisTemplate<String, Object> redisTemplate, RedissonClient redissonClient) {
+        return new RedisTemplateProxy(redisDistributedProperties, redisTemplate, redissonClient);
     }
 
 }
