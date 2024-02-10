@@ -14,6 +14,7 @@ import com.zihuv.dilidili.model.param.VideoPublishParam;
 import com.zihuv.dilidili.model.vo.HotVideoVO;
 import com.zihuv.dilidili.service.VideoService;
 import com.zihuv.dilidili.util.UserContext;
+import com.zihuv.dilidili.util.cache.DistributedCache;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import static com.zihuv.dilidili.common.contant.RedisConstant.VIDEO_INFO;
 
 @Service
 public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements VideoService {
@@ -35,6 +38,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private DistributedCache distributedCache;
 
     @Override
     public String getUploadVideoToken() {
@@ -94,6 +100,13 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         redisTemplate.opsForValue().increment(key, 1L);
         // step2.发布 redis 更新至数据库事件
         eventPublisher.publishEvent(new RedisToDatabaseEvent(key, BusinessConstant.VIDEO_VIEWS, 2));
+    }
+
+    @Override
+    public Video getVideoById(Long videoId) {
+        return distributedCache.get(VIDEO_INFO + videoId,
+                Video.class,
+                () -> this.getById(videoId));
     }
 
 }

@@ -13,6 +13,9 @@ public class RedisConstant {
     // 热门排行榜
     public static final String HOT_RANK = "hot:rank";
 
+    // 视频信息 key + videoId
+    public static final String VIDEO_INFO = "video:info:";
+
     // 视频点赞数 key + videoId
     public static final String VIDEO_LIKE = "like:video:";
 

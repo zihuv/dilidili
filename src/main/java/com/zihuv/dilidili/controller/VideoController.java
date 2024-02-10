@@ -29,6 +29,10 @@ public class VideoController {
         return Result.success(videoService.getVideoByName(videoTitle));
     }
 
+    @GetMapping("/api/video/get/id")
+    public Result<?> getVideoByName(@RequestParam Long videoId) {
+        return Result.success(videoService.getVideoById(videoId));
+    }
 
     @GetMapping("/api/video/delete")
     public Result<?> deleteVideo(@RequestParam Long videoId) {
