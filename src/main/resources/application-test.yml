@@ -1,0 +1,38 @@
+server:
+  port: 10100
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/dilidili
+    username: example
+    password: example
+    type: com.alibaba.druid.pool.DruidDataSource
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password: example
+
+mybatis-plus:
+  configuration:
+    mapUnderscoreToCamelCase: true
+    # 打印 sql 日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+rocketmq:
+  name-server: 127.0.0.1:9876 # NameServer 地址
+  producer:
+    group: rocketmq-service_common-message-execute # 全局发送者组定义
+
+qiniu:
+  access-key: example
+  secret-key: example
+  bucket-name: example
+  base-url: example
+
+canal:
+  hostname: 127.0.0.1
+  port: 11111
+  destination: example
+  username: example
+  password: example
